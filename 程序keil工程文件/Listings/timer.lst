@@ -1,0 +1,147 @@
+C51 COMPILER V9.54   TIMER                                                                 12/16/2019 20:15:27 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE TIMER
+OBJECT MODULE PLACED IN .\Objects\timer.obj
+COMPILER INVOKED BY: C:\Keil_mdk\C51\BIN\C51.EXE source\src\timer.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\source\inc) DEBUG 
+                    -OBJECTEXTEND PRINT(.\Listings\timer.lst) OBJECT(.\Objects\timer.obj)
+
+line level    source
+
+   1          #include "timer.h"
+   2          
+   3          year_t year = {2019,12,10},year_m = {0,0,0};
+   4          time_t time = {9,30,50},time_m = {0,0,0};
+   5          time_t tim_clk = {0,0,10};
+   6          
+   7          Tim_flag_t tim_flag;    //时间标志
+   8          
+   9          /*
+  10          * 函数功能:  定时器初始化
+  11          * 函数参数:无
+  12          * 函数返回:无
+  13          */
+  14          void Timer0Init(void)           //1毫秒@11.0592MHz
+  15          {
+  16   1              TMOD &= 0xF0;           //设置定时器模式
+  17   1              TL0 = 0xCD;             //设置定时初值
+  18   1              TH0 = 0xD4;             //设置定时初值
+  19   1              TF0 = 0;                //清除TF0标志
+  20   1              TR0 = 1;                //定时器0开始计时
+  21   1          
+  22   1          ET0 = 1;        //开启定时器0中断
+  23   1          EA = 1;         //使能总中断
+  24   1      }
+  25          
+  26          /*
+  27          * 函数功能:定时器0中断服务函数
+  28          */
+  29          void Timer0_interupt(void)  interrupt 1
+  30          {
+  31   1          static uint32_t s1 = 0,count = 0,s10 = 0,s30 = 0;
+  32   1          static uint8_t ms = 0,key_tim = 0;
+  33   1          
+  34   1              TL0 = 0xCD;     TH0 = 0xD4;             //重置定时器       
+  35   1          ms++,key_tim++;
+  36   1          if(!key_flag.k3)
+  37   1          {
+  38   2              s1++;
+  39   2              if(!led_pcb.status)
+  40   2              {
+  41   3                  count++;s10 = 0;
+  42   3                  if(count == 3000)
+  43   3                  {
+  44   4                      led_pcb.who = 1;
+  45   4                  }
+  46   3                  if(count == 10000)
+  47   3                  {
+  48   4                      count = 0;
+  49   4                      led_pcb.who = 0;
+  50   4                  }
+  51   3              }
+  52   2              else
+  53   2              {
+  54   3                  s10++;
+C51 COMPILER V9.54   TIMER                                                                 12/16/2019 20:15:27 PAGE 2   
+
+  55   3                  if(s10 == 10000)
+  56   3                  {
+  57   4                      led_pcb.status = 0;
+  58   4                      led_pcb.who = led_pcb.back;
+  59   4                  }
+  60   3              }
+  61   2              if(s1 >= 1000)
+  62   2              {
+  63   3                  s1 = 0;
+  64   3                  if(led_pcb.status != 3)
+  65   3                  {
+  66   4                      time_add();
+  67   4                      clock_sub();
+  68   4                  }
+  69   3              }
+  70   2          }
+  71   1          if(alarm_flag == 1)
+  72   1          {
+  73   2              if(ms == 8)
+  74   2              {
+  75   3                  ms = 0;
+  76   3                  tim_flag.ms3 = 1;   //5ms
+  77   3              }
+  78   2          }
+  79   1          else
+  80   1          {
+  81   2              if(ms == 3) 
+  82   2              {
+  83   3                  ms = 0;
+  84   3                  tim_flag.ms3 = 1;   //5ms
+  85   3              }
+  86   2          }
+  87   1          if(key_tim == 50)
+  88   1          {
+  89   2              key_tim = 0;        //清除计数
+  90   2              tim_flag.key = 1;   //按键扫描时间到
+  91   2          }
+  92   1      
+  93   1          if(alarm_flag == 1)
+  94   1          {
+  95   2              s30++;
+  96   2              if(s30 == 30000)
+  97   2                  tim_flag.s30 = 2;                       //30S到
+  98   2          }
+  99   1          else
+ 100   1              s30 = 0;                                    //闹钟没有开启时,不进行30S计时
+ 101   1      }
+ 102          
+ 103          
+ 104          
+ 105          
+ 106          
+ 107          
+ 108          
+ 109          
+ 110          
+ 111          
+ 112          
+ 113          
+ 114          
+ 115          
+ 116          
+C51 COMPILER V9.54   TIMER                                                                 12/16/2019 20:15:27 PAGE 3   
+
+ 117          
+ 118          
+ 119          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    401    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     36    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,220 @@
+C51 COMPILER V9.54   LED                                                                   12/16/2019 20:15:26 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE LED
+OBJECT MODULE PLACED IN .\Objects\led.obj
+COMPILER INVOKED BY: C:\Keil_mdk\C51\BIN\C51.EXE source\src\led.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\source\inc) DEBUG OB
+                    -JECTEXTEND PRINT(.\Listings\led.lst) OBJECT(.\Objects\led.obj)
+
+line level    source
+
+   1          #include "led.h"
+   2          #include "math.h"
+   3          
+   4          const uint8_t choose[] = {0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80};    //扫描位置选择
+   5          
+   6          const uint8_t value[] = {
+   7              0xC0,0xF9,0xA4,0xB0,0x99,
+   8              0x92,0x82,0xF8,0x80,0x98
+   9          };      //数字真值
+  10          
+  11          uint8_t alarm_flag = 0;
+  12          
+  13          /*
+  14          * 对pcb中内容解释:
+  15          * status 0 正常切换显示    1       按键强制切换显示
+  16          * who    0 year显示          1 time显示
+  17          */
+  18          show_pcb led_pcb;
+  19          
+  20          /*
+  21          * 函数功能:年份显示
+  22          */
+  23          void yea_show(year_t year)
+  24          {
+  25   1          static uint8_t i = 0;   //计数变量
+  26   1          uint8_t larg = 0,smal = 0;
+  27   1      
+  28   1          larg = (uint8_t)(year.year / 100); //数字截取
+  29   1          smal = (uint8_t)(year.year % 100); //数字截取
+  30   1      
+  31   1          if(i > 7) i = 0;
+  32   1          
+  33   1          XBYTE[0x7f01] = choose[i];
+  34   1      
+  35   1          switch (i/2)
+  36   1          {
+  37   2      
+  38   2              case 0:
+  39   2                  if(i % 2)XBYTE[0x7f00] = value[larg%10];
+  40   2                  else     XBYTE[0x7f00] = value[larg/10] ;  
+  41   2                  ;break;
+  42   2              case 1:
+  43   2                  if(i % 2)XBYTE[0x7f00] = value[smal%10];
+  44   2                  else     XBYTE[0x7f00] = value[smal/10] ;
+  45   2                  break;
+  46   2              case 2:
+  47   2                  if(i % 2)XBYTE[0x7f00] = value[year.mons%10];
+  48   2                  else     XBYTE[0x7f00] = value[year.mons/10] ;
+  49   2                  break;
+  50   2              case 3:
+  51   2                  if(i % 2)XBYTE[0x7f00] = value[year.days%10];
+  52   2                  else     XBYTE[0x7f00] = value[year.days/10] ;
+  53   2                  break;
+  54   2          }
+C51 COMPILER V9.54   LED                                                                   12/16/2019 20:15:26 PAGE 2   
+
+  55   1          i++;
+  56   1      }
+  57          
+  58          /*
+  59          * 函数功能:时间显示
+  60          */
+  61          void tim_show(time_t time)
+  62          {
+  63   1          static uint8_t i = 0;   //计数变量
+  64   1          if(!led_pcb.mode && time.hou > 12) time.hou -= 12; 
+  65   1          if(i > 7) i = 0;
+  66   1          XBYTE[0x7f01] = choose[i];
+  67   1          switch (i/2)
+  68   1          {
+  69   2              case 0:
+  70   2                  if(i % 2) XBYTE[0x7f00] = value[time.hou%10];
+  71   2                  else      XBYTE[0x7f00] = value[time.hou/10];
+  72   2                  break;
+  73   2              case 1:        
+  74   2                  if(i % 2) XBYTE[0x7f00] = value[time.min/10];
+  75   2                  else      XBYTE[0x7f00] = 0xBF;                        //显示 ' - '
+  76   2                  break;
+  77   2              case 2:
+  78   2                  if(i % 2) XBYTE[0x7f00] = 0xBF;                       //显示 ' - '
+  79   2                  else      XBYTE[0x7f00] = value[time.min%10];
+  80   2                  break;
+  81   2              case 3:
+  82   2                  if(i % 2)
+  83   2                  {
+  84   3                      if(!key_flag.k4) XBYTE[0x7f00] = value[time.sec%10] & 0x7F;
+  85   3                      else              XBYTE[0x7f00] = value[time.sec%10];  
+  86   3                  }
+  87   2                  else     XBYTE[0x7f00] = value[time.sec/10];
+  88   2                  break;
+  89   2          }
+  90   1          i++;
+  91   1      }
+  92          
+  93          /*普通显示*/
+  94          void nomal_show(void)
+  95          {
+  96   1          if(led_pcb.who)
+  97   1          {
+  98   2              tim_show(time);       
+  99   2          }
+ 100   1          else 
+ 101   1          {
+ 102   2              yea_show(year);
+ 103   2          }
+ 104   1      }
+ 105          
+ 106          /*特殊显示*/
+ 107          void special_show(void)
+ 108          {
+ 109   1           if(led_pcb.who)
+ 110   1           {
+ 111   2              tim_show(time);        
+ 112   2           }
+ 113   1           else
+ 114   1           {
+ 115   2              yea_show(year); 
+ 116   2           }
+C51 COMPILER V9.54   LED                                                                   12/16/2019 20:15:26 PAGE 3   
+
+ 117   1      }
+ 118          
+ 119          /*时钟计时*/
+ 120          void time_add(void)
+ 121          {
+ 122   1          if(++time.sec == 60) 
+ 123   1          {
+ 124   2              time.sec = 0;
+ 125   2              if(++time.min == 60)
+ 126   2              {
+ 127   3                  time.min = 0;
+ 128   3                  if(++time.hou == 24)
+ 129   3                      time.hou = 0;
+ 130   3              }
+ 131   2          }
+ 132   1      }
+ 133          
+ 134          /*闹钟倒计时*/
+ 135          void clock_sub(void)
+ 136          {
+ 137   1          if(tim_clk.sec > 0)
+ 138   1          {
+ 139   2              tim_clk.sec--;return;
+ 140   2          }
+ 141   1          else
+ 142   1          {
+ 143   2              if(tim_clk.min > 0)
+ 144   2              {
+ 145   3                  tim_clk.sec = 60;
+ 146   3                  tim_clk.min--;
+ 147   3                  return;
+ 148   3              }
+ 149   2              if(tim_clk.hou > 0)
+ 150   2              {
+ 151   3                  tim_clk.hou--;
+ 152   3                  tim_clk.min = 59;
+ 153   3                  tim_clk.sec = 60;
+ 154   3              }
+ 155   2          }
+ 156   1      }
+ 157          
+ 158          void alarm(void)
+ 159          {
+ 160   1          if(!key_flag.k4 && tim_clk.sec == 0 && tim_clk.min == 0 && tim_clk.hou == 0)
+ 161   1          {
+ 162   2              alarm_flag = 1;
+ 163   2              P17 = 0;
+ 164   2          }
+ 165   1          if(alarm_flag == 2 | key_flag.k4)
+ 166   1          {
+ 167   2              P17 = 1;
+ 168   2          }
+ 169   1      }
+ 170          
+ 171          /*
+ 172          * 函数功能:数码管刷新
+ 173          */
+ 174          void refresh(void)
+ 175          {
+ 176   1          if(tim_flag.ms3)
+ 177   1          {
+ 178   2              tim_flag.ms3 = 0;
+C51 COMPILER V9.54   LED                                                                   12/16/2019 20:15:26 PAGE 4   
+
+ 179   2              switch(led_pcb.status)
+ 180   2              {
+ 181   3                  case 0:nomal_show();break;
+ 182   3                  case 1:special_show();break;
+ 183   3                  default:break;
+ 184   3              }
+ 185   2          }
+ 186   1          
+ 187   1      }
+ 188          
+ 189          
+ 190          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    569    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     25       7
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
